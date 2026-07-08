@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-<title>Daily Energy</title>
+<title>Calorie Calculator</title>
 
 <!-- iOS home-screen app behavior -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Daily Energy">
+<meta name="apple-mobile-web-app-title" content="Calorie Calculator">
 <meta name="theme-color" content="#14171A">
 <link rel="apple-touch-icon" href="data:image/png;base64,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">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -283,8 +283,7 @@
 <div class="wrap">
   <header>
     <p class="eyebrow">Energy balance · 001</p>
-    <h1>Daily Energy</h1>
-    <p class="sub">Estimate the calories your body burns at rest and in daily life, then dial in a target based on your goal. Built on the Mifflin–St Jeor equation.</p>
+    <h1>Calorie Calculator</h1>
   </header>
 
   <div class="grid">
@@ -298,7 +297,7 @@
         </div>
         <div class="field">
           <label>Weight (kg)</label>
-          <input type="number" id="weight" value="80" min="20">
+          <input type="number" id="weight" value="83" min="20">
         </div>
       </div>
 
@@ -383,9 +382,7 @@
     </div>
   </div>
 
-  <footer>
-    Estimates use the Mifflin–St Jeor equation. Set your own protein / carb / fat percentages with the sliders below — they're normalized to always total 100%. These are population-average approximations, not medical advice — actual needs vary by body composition, metabolism, and health status. Check with a doctor or registered dietitian before making significant changes to your diet.
-  </footer>
+
 </div>
 
 <script>
