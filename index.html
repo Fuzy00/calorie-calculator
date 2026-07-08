@@ -327,6 +327,11 @@
           <label class="goal-opt"><input type="radio" name="goal" value="500"> Gain (~0.5 kg/week)</label>
         </div>
       </div>
+
+      <div class="field" style="margin-top:18px; margin-bottom:0;">
+        <label>Goal weight (kg)</label>
+        <input type="number" id="goalWeight" placeholder="e.g. 88" min="20">
+      </div>
     </div>
 
     <div class="card output">
@@ -347,7 +352,9 @@
         <div class="bline"><span class="label">BMR (resting burn)</span><span class="val" id="bmrVal">—</span></div>
         <div class="bline"><span class="label">TDEE (with activity)</span><span class="val" id="tdeeVal">—</span></div>
         <div class="bline"><span class="label">Goal adjustment</span><span class="val" id="adjVal">—</span></div>
+        <div class="bline" id="timelineRow" style="display:none;"><span class="label">Time to goal weight</span><span class="val" id="timelineVal">—</span></div>
       </div>
+      <div class="sum-note" id="timelineNote" style="display:none; width:100%; margin-top:6px;"></div>
 
       <div class="manual-panel visible" id="manualPanel">
         <div class="macro-slider">
@@ -395,7 +402,7 @@
     });
   });
 
-  ['age','weight','height','activity'].forEach(id=>{
+  ['age','weight','height','activity','goalWeight'].forEach(id=>{
     $(id).addEventListener('input', calculate);
     $(id).addEventListener('change', calculate);
   });
@@ -437,6 +444,40 @@
     $('tdeeVal').textContent = Math.round(tdee).toLocaleString() + ' kcal';
     $('adjVal').textContent = (goal > 0 ? '+' : '') + Math.round(goal).toLocaleString() + ' kcal';
     $('targetCals').textContent = Math.round(target).toLocaleString();
+
+    // Time-to-goal-weight estimate (~7700 kcal per kg of body weight)
+    const timelineRow = $('timelineRow');
+    const timelineNote = $('timelineNote');
+    const goalWeightVal = parseFloat($('goalWeight').value);
+    timelineRow.style.display = 'none';
+    timelineNote.style.display = 'none';
+
+    if(!isNaN(goalWeightVal) && goalWeightVal > 0){
+      const diff = goalWeightVal - weight;
+      if(goal === 0){
+        timelineNote.style.display = 'block';
+        timelineNote.classList.add('warn');
+        timelineNote.textContent = 'Pick a mild gain/gain or mild loss/loss goal above to see a timeline.';
+      } else if(Math.abs(diff) < 0.1){
+        timelineNote.style.display = 'block';
+        timelineNote.classList.remove('warn');
+        timelineNote.textContent = 'Goal weight matches your current weight.';
+      } else if((goal > 0 && diff < 0) || (goal < 0 && diff > 0)){
+        timelineNote.style.display = 'block';
+        timelineNote.classList.add('warn');
+        timelineNote.textContent = goal > 0
+          ? 'Your goal weight is below your current weight — switch to a loss goal to see a timeline.'
+          : 'Your goal weight is above your current weight — switch to a gain goal to see a timeline.';
+      } else {
+        const weeklyRateKg = Math.abs(goal) * 7 / 7700;
+        const weeks = Math.abs(diff) / weeklyRateKg;
+        timelineRow.style.display = 'flex';
+        const roundedWeeks = Math.round(weeks);
+        const months = weeks / 4.345;
+        $('timelineVal').textContent = roundedWeeks + (roundedWeeks === 1 ? ' week' : ' weeks')
+          + ` (~${months.toFixed(1)} mo)`;
+      }
+    }
 
     const circumference = 590.6;
     const pct = Math.min(1, Math.max(0, (target - 1200) / (4000 - 1200)));
