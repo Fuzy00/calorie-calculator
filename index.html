@@ -528,12 +528,6 @@
   const $ = id => document.getElementById(id);
   const state = { goalMode: 'maintain', peMode: 'no' };
 
-  // Rough, commonly-cited fitness-community characteristics per compound.
-  // water: relative water-retention contribution (% of bodyweight) at the internal reference dose
-  // boost: relative partitioning boost toward muscle/away from fat at the internal reference dose
-  // maxWeeks: typical cycle-length ceiling before diminishing returns / rising risk
-  // refMg: internal-only normalization anchor used to scale the effect with the dose you enter —
-  //   NOT a recommendation, just a midpoint for the model's math
   const COMPOUNDS = {
     test: { label: 'Test',  water: 1.5, boost: 0.15, maxWeeks: null, refMg: 500 },
     deca: { label: 'Deca',  water: 2.5, boost: 0.20, maxWeeks: 24,   refMg: 400 },
@@ -581,23 +575,15 @@
   const proteinSlider = $('proteinSlider');
   const carbSlider = $('carbSlider');
   const fatSlider = $('fatSlider');
+  
   [proteinSlider, carbSlider, fatSlider].forEach(s=>{
-    s.addEventListener('input', ()=>{
-      $('proteinPctLabel').textContent = proteinSlider.value + '%';
-      $('carbPctLabel').textContent = carbSlider.value + '%';
-      $('fatPctLabel').textContent = fatSlider.value + '%';
-      calculate();
-    });
+    s.addEventListener('input', calculate);
   });
 
   function selectedCompounds(){
     return Array.from(document.querySelectorAll('.compound:checked')).map(cb => cb.value);
   }
 
-  // Fraction of a weight change that comes from fat (vs lean mass), based on
-  // direction, how aggressive the weekly rate is relative to body weight, and
-  // a partitioning boost from selected compounds. These are commonly-cited
-  // fitness heuristics, not precise clinical or medical figures.
   function fatFraction(direction, weeklyPctBW, boost){
     let base;
     if(direction === 'loss'){
@@ -662,7 +648,6 @@
       return;
     }
 
-    // Mifflin-St Jeor (male constant)
     let bmr = 10*weight + 6.25*height - 5*age + 5;
     const tdee = bmr * activity;
 
@@ -687,20 +672,16 @@
         resetProjection();
       } else {
         const direction = diff > 0 ? 'gain' : 'loss';
-        const weeklyRateKg = diff / goalWeeksVal; // signed
+        const weeklyRateKg = diff / goalWeeksVal; 
         const weeklyPctBW = Math.abs(weeklyRateKg) / weight * 100;
-        dailyAdjustment = weeklyRateKg * 1100; // 7700 kcal/kg ÷ 7 days
+        dailyAdjustment = weeklyRateKg * 1100; 
 
         const usingPE = state.peMode === 'yes' && compounds.length > 0;
 
-        // Scale each compound's effect by the mg/week entered, relative to an
-        // internal reference point (not a recommendation) — more mg pushes the
-        // modeled effect up, less mg pulls it down, clamped so the model doesn't
-        // extrapolate wildly at very low or very high inputs.
         function doseScale(key){
           const mgInput = $('mg-' + key);
           const mg = mgInput ? parseFloat(mgInput.value) : NaN;
-          if(isNaN(mg) || mg <= 0) return 1; // no dose entered — use unscaled baseline
+          if(isNaN(mg) || mg <= 0) return 1; 
           return Math.min(1.6, Math.max(0.3, mg / COMPOUNDS[key].refMg));
         }
 
@@ -717,7 +698,6 @@
         paceNote.textContent = `${label} — ${weeklyPctBW.toFixed(2)}% of body weight/week`
           + (extreme ? ' (faster than generally recommended — consider a longer timeframe)' : '');
 
-        // Body composition projection
         if(!isNaN(bodyfat) && bodyfat > 0){
           const startFat = weight * bodyfat / 100;
           const startLean = weight - startFat;
@@ -727,12 +707,7 @@
           let endFat, muscleChangeKg;
 
           if(direction === 'gain'){
-            // Real muscle tissue accretion is rate-limited by biology, not just
-            // by how big a surplus you run — extra calories beyond that rate
-            // mostly become fat. ~0.25 kg/week is a commonly-cited natural
-            // ceiling for an intermediate lifter; enhanced compounds raise that
-            // ceiling (scaled by dose), but it's still capped, not unlimited.
-            const NATURAL_MUSCLE_RATE = 0.25; // kg/week
+            const NATURAL_MUSCLE_RATE = 0.25; 
             const muscleRatePerWeek = usingPE
               ? Math.min(0.75, NATURAL_MUSCLE_RATE * (1 + boost * 2))
               : NATURAL_MUSCLE_RATE;
@@ -742,8 +717,6 @@
             const fatGainKg = Math.max(0, diff - muscleChangeKg - waterKg);
             endFat = startFat + fatGainKg;
           } else {
-            // Cutting: use the fat-vs-lean partitioning split (how much of the
-            // loss is fat vs muscle), which naturally stays in a realistic range.
             const fFrac = fatFraction(direction, weeklyPctBW, boost);
             const fatChange = diff * fFrac;
             endFat = Math.max(0, startFat + fatChange);
@@ -767,7 +740,7 @@
           $('endMuscleRow').style.display = usingPE ? 'flex' : 'none';
           $('endWaterRow').style.display = usingPE ? 'flex' : 'none';
           if(usingPE){
-            const sign = muscleChangeKg > 0 ? '+' : muscleChangeKg < 0 ? '' : '';
+            const sign = muscleChangeKg > 0 ? '+' : '';
             $('endMuscleVal').textContent = sign + muscleChangeKg.toFixed(1) + ' kg';
             document.querySelector('#endMuscleRow .label').textContent =
               muscleChangeKg >= 0 ? '— Muscle gained' : '— Muscle lost';
@@ -777,9 +750,14 @@
           resetProjection();
         }
       }
-    } else if(state.goalMode === 'change'){
-      paceNote.classList.remove('warn');
-      paceNote.textContent = 'Enter a goal weight and timeframe to see your plan.';
+    } else {
+      // FIX 1: Ensures calculations reset immediately when toggled to maintenance mode
+      if(state.goalMode === 'change'){
+        paceNote.classList.remove('warn');
+        paceNote.textContent = 'Enter a goal weight and timeframe to see your plan.';
+      } else {
+        paceNote.textContent = '';
+      }
       resetProjection();
     }
 
@@ -794,12 +772,12 @@
     const pct = Math.min(1, Math.max(0, (target - 1200) / (4000 - 1200)));
     $('dialRing').setAttribute('stroke-dashoffset', (circumference * (1 - pct)).toFixed(1));
 
-    // Macro percentages from sliders, normalized to always total 100
     const rawP = parseFloat(proteinSlider.value);
     const rawC = parseFloat(carbSlider.value);
     const rawF = parseFloat(fatSlider.value);
     const rawSum = rawP + rawC + rawF;
     const sumNote = $('sumNote');
+    
     if(rawSum === 100){
       sumNote.textContent = 'Total: 100%';
       sumNote.classList.remove('warn');
@@ -807,9 +785,15 @@
       sumNote.textContent = `Total: ${rawSum}% — normalized to 100%`;
       sumNote.classList.add('warn');
     }
+    
     const pPct = (rawP / rawSum) * 100;
     const cPct = (rawC / rawSum) * 100;
     const fPct = (rawF / rawSum) * 100;
+
+    // FIX 2: Updates user-facing slider percentage metrics to mirror the true math active splits
+    $('proteinPctLabel').textContent = Math.round(pPct) + '%';
+    $('carbPctLabel').textContent = Math.round(cPct) + '%';
+    $('fatPctLabel').textContent = Math.round(fPct) + '%';
 
     const proteinCals = target * (pPct/100);
     const carbCals = target * (cPct/100);
