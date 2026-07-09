@@ -307,6 +307,11 @@
       </div>
 
       <div class="field">
+        <label>Body fat (%)</label>
+        <input type="number" id="bodyfat" value="20" min="3" max="60" step="0.5">
+      </div>
+
+      <div class="field" style="margin-bottom:0;">
         <label>Activity level</label>
         <select id="activity">
           <option value="1.2">Sedentary — little to no exercise</option>
@@ -316,21 +321,68 @@
           <option value="1.9">Very active — hard training or physical job</option>
         </select>
       </div>
+    </div>
 
-      <div class="field" style="margin-bottom:0;">
-        <label>Goal</label>
-        <div class="goal-list" id="goalList">
-          <label class="goal-opt active"><input type="radio" name="goal" value="0" checked> Maintain weight</label>
-          <label class="goal-opt"><input type="radio" name="goal" value="-250"> Mild loss (~0.25 kg/week)</label>
-          <label class="goal-opt"><input type="radio" name="goal" value="-500"> Loss (~0.5 kg/week)</label>
-          <label class="goal-opt"><input type="radio" name="goal" value="250"> Mild gain (~0.25 kg/week)</label>
-          <label class="goal-opt"><input type="radio" name="goal" value="500"> Gain (~0.5 kg/week)</label>
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>Goal &amp; timeline</h2>
+
+      <div class="field">
+        <div class="segmented" id="goalModeToggle">
+          <button data-mode="maintain" class="active">Maintain weight</button>
+          <button data-mode="change">Gain or lose weight</button>
         </div>
       </div>
 
-      <div class="field" style="margin-top:18px; margin-bottom:0;">
-        <label>Goal weight (kg)</label>
-        <input type="number" id="goalWeight" placeholder="e.g. 88" min="20">
+      <div id="goalInputs" style="display:none;">
+        <div class="row">
+          <div class="field">
+            <label>Goal weight (kg)</label>
+            <input type="number" id="goalWeight" placeholder="e.g. 88" min="20">
+          </div>
+          <div class="field">
+            <label>Timeframe (weeks)</label>
+            <input type="number" id="goalWeeks" placeholder="e.g. 12" min="1">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Performance enhancers</label>
+          <div class="segmented" id="peToggle">
+            <button data-pe="no" class="active">Natural</button>
+            <button data-pe="yes">Using anabolics</button>
+          </div>
+        </div>
+
+        <div id="peCompounds" style="display:none; margin-bottom:18px;">
+          <div class="goal-list">
+            <label class="goal-opt"><input type="checkbox" class="compound" value="test"> Test (Testosterone) — no defined max</label>
+            <label class="goal-opt"><input type="checkbox" class="compound" value="deca"> Deca (Nandrolone Decanoate) — max ~24 weeks</label>
+            <label class="goal-opt"><input type="checkbox" class="compound" value="tren"> Tren (Trenbolone) — max ~6 weeks</label>
+            <label class="goal-opt"><input type="checkbox" class="compound" value="npp"> NPP (Nandrolone Phenylpropionate) — max ~10 weeks</label>
+          </div>
+          <div class="sum-note" id="durationNote" style="display:none; text-align:left; margin-top:12px;"></div>
+        </div>
+
+        <div class="sum-note" id="paceNote" style="text-align:left; margin-bottom:18px;"></div>
+
+        <div class="row" style="gap:16px;">
+          <div>
+            <div class="eyebrow" style="margin-bottom:10px;">Starting point</div>
+            <div class="bline"><span class="label">Weight</span><span class="val" id="startWeightVal">—</span></div>
+            <div class="bline"><span class="label">Body fat</span><span class="val" id="startBFVal">—</span></div>
+            <div class="bline"><span class="label">Fat mass</span><span class="val" id="startFatVal">—</span></div>
+            <div class="bline"><span class="label">Lean mass</span><span class="val" id="startLeanVal">—</span></div>
+          </div>
+          <div>
+            <div class="eyebrow" style="margin-bottom:10px;">Projected at goal</div>
+            <div class="bline"><span class="label">Weight</span><span class="val" id="endWeightVal">—</span></div>
+            <div class="bline"><span class="label">Body fat</span><span class="val" id="endBFVal">—</span></div>
+            <div class="bline"><span class="label">Fat mass</span><span class="val" id="endFatVal">—</span></div>
+            <div class="bline"><span class="label">Lean mass</span><span class="val" id="endLeanVal">—</span></div>
+            <div class="bline" id="endMuscleRow" style="display:none;"><span class="label">— Muscle (dry)</span><span class="val" id="endMuscleVal">—</span></div>
+            <div class="bline" id="endWaterRow" style="display:none;"><span class="label">— Water retention</span><span class="val" id="endWaterVal">—</span></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -351,10 +403,8 @@
       <div class="breakdown">
         <div class="bline"><span class="label">BMR (resting burn)</span><span class="val" id="bmrVal">—</span></div>
         <div class="bline"><span class="label">TDEE (with activity)</span><span class="val" id="tdeeVal">—</span></div>
-        <div class="bline"><span class="label">Goal adjustment</span><span class="val" id="adjVal">—</span></div>
-        <div class="bline" id="timelineRow" style="display:none;"><span class="label">Time to goal weight</span><span class="val" id="timelineVal">—</span></div>
+        <div class="bline"><span class="label">Daily adjustment</span><span class="val" id="adjVal">—</span></div>
       </div>
-      <div class="sum-note" id="timelineNote" style="display:none; width:100%; margin-top:6px;"></div>
 
       <div class="manual-panel visible" id="manualPanel">
         <div class="macro-slider">
@@ -394,19 +444,47 @@
 
 <script>
   const $ = id => document.getElementById(id);
+  const state = { goalMode: 'maintain', peMode: 'no' };
 
-  document.querySelectorAll('.goal-opt').forEach(opt=>{
-    opt.addEventListener('click', ()=>{
-      document.querySelectorAll('.goal-opt').forEach(o=>o.classList.remove('active'));
-      opt.classList.add('active');
+  // Rough, commonly-cited fitness-community characteristics per compound.
+  // water: relative water-retention contribution (% of bodyweight)
+  // boost: relative partitioning boost toward muscle/away from fat
+  // maxWeeks: typical cycle-length ceiling before diminishing returns / rising risk
+  const COMPOUNDS = {
+    test: { label: 'Test',  water: 1.5, boost: 0.15, maxWeeks: null },
+    deca: { label: 'Deca',  water: 2.5, boost: 0.20, maxWeeks: 24 },
+    tren: { label: 'Tren',  water: 0.0, boost: 0.30, maxWeeks: 6 },
+    npp:  { label: 'NPP',   water: 2.0, boost: 0.20, maxWeeks: 10 }
+  };
+
+  document.querySelectorAll('#goalModeToggle button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#goalModeToggle button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      state.goalMode = btn.dataset.mode;
+      $('goalInputs').style.display = state.goalMode === 'change' ? 'block' : 'none';
+      calculate();
     });
   });
 
-  ['age','weight','height','activity','goalWeight'].forEach(id=>{
+  document.querySelectorAll('#peToggle button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#peToggle button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      state.peMode = btn.dataset.pe;
+      $('peCompounds').style.display = state.peMode === 'yes' ? 'block' : 'none';
+      calculate();
+    });
+  });
+
+  document.querySelectorAll('.compound').forEach(cb=>{
+    cb.addEventListener('change', calculate);
+  });
+
+  ['age','weight','height','activity','bodyfat','goalWeight','goalWeeks'].forEach(id=>{
     $(id).addEventListener('input', calculate);
     $(id).addEventListener('change', calculate);
   });
-  document.querySelectorAll('input[name=goal]').forEach(r=> r.addEventListener('change', calculate));
 
   const proteinSlider = $('proteinSlider');
   const carbSlider = $('carbSlider');
@@ -420,12 +498,69 @@
     });
   });
 
+  function selectedCompounds(){
+    return Array.from(document.querySelectorAll('.compound:checked')).map(cb => cb.value);
+  }
+
+  // Fraction of a weight change that comes from fat (vs lean mass), based on
+  // direction, how aggressive the weekly rate is relative to body weight, and
+  // a partitioning boost from selected compounds. These are commonly-cited
+  // fitness heuristics, not precise clinical or medical figures.
+  function fatFraction(direction, weeklyPctBW, boost){
+    let base;
+    if(direction === 'loss'){
+      base = weeklyPctBW <= 0.5 ? 0.85 : weeklyPctBW <= 1.0 ? 0.75 : 0.60;
+      return boost > 0 ? Math.min(0.97, base + boost * (1 - base)) : base;
+    } else {
+      base = weeklyPctBW <= 0.25 ? 0.40 : weeklyPctBW <= 0.5 ? 0.55 : 0.70;
+      return boost > 0 ? Math.max(0.05, base * (1 - boost)) : base;
+    }
+  }
+
+  function paceLabel(direction, weeklyPctBW, boost){
+    let label;
+    if(direction === 'loss'){
+      label = weeklyPctBW <= 0.5 ? 'Mild cut' : weeklyPctBW <= 1.0 ? 'Moderate cut' : 'Aggressive cut';
+    } else {
+      label = weeklyPctBW <= 0.25 ? 'Lean bulk' : weeklyPctBW <= 0.5 ? 'Moderate bulk' : 'Aggressive bulk';
+    }
+    return boost > 0 ? label + ' (enhanced)' : label;
+  }
+
+  function updateDurationNote(compounds, weeks){
+    const note = $('durationNote');
+    if(compounds.length === 0){
+      note.style.display = 'block';
+      note.classList.add('warn');
+      note.textContent = 'Select at least one compound.';
+      return;
+    }
+    if(isNaN(weeks) || weeks <= 0){
+      note.style.display = 'none';
+      return;
+    }
+    const exceeded = compounds
+      .map(c => ({ ...COMPOUNDS[c], key: c }))
+      .filter(c => c.maxWeeks !== null && weeks > c.maxWeeks);
+
+    note.style.display = 'block';
+    if(exceeded.length > 0){
+      note.classList.add('warn');
+      note.textContent = exceeded
+        .map(c => `${c.label}: typically capped around ${c.maxWeeks} weeks`)
+        .join(' · ') + ` — your ${weeks}-week timeframe exceeds this.`;
+    } else {
+      note.classList.remove('warn');
+      note.textContent = 'Timeframe looks within typical cycle-length ranges for the selected compounds.';
+    }
+  }
+
   function calculate(){
     let age = parseFloat($('age').value) || 0;
     let weight = parseFloat($('weight').value) || 0;
     let height = parseFloat($('height').value) || 0;
+    let bodyfat = parseFloat($('bodyfat').value);
     const activity = parseFloat($('activity').value);
-    const goal = parseFloat(document.querySelector('input[name=goal]:checked').value);
 
     if(weight <= 0 || height <= 0 || age <= 0){
       $('bmrVal').textContent = '—';
@@ -438,46 +573,91 @@
     // Mifflin-St Jeor (male constant)
     let bmr = 10*weight + 6.25*height - 5*age + 5;
     const tdee = bmr * activity;
-    const target = Math.max(1000, tdee + goal);
+
+    let dailyAdjustment = 0;
+    const paceNote = $('paceNote');
+    const goalWeightVal = parseFloat($('goalWeight').value);
+    const goalWeeksVal = parseFloat($('goalWeeks').value);
+    const compounds = selectedCompounds();
+
+    if(state.goalMode === 'change' && state.peMode === 'yes'){
+      updateDurationNote(compounds, goalWeeksVal);
+    } else {
+      $('durationNote').style.display = 'none';
+    }
+
+    if(state.goalMode === 'change' && !isNaN(goalWeightVal) && goalWeightVal > 0 && !isNaN(goalWeeksVal) && goalWeeksVal > 0){
+      const diff = goalWeightVal - weight;
+
+      if(Math.abs(diff) < 0.1){
+        paceNote.classList.remove('warn');
+        paceNote.textContent = 'Goal weight matches your current weight — nothing to plan.';
+        resetProjection();
+      } else {
+        const direction = diff > 0 ? 'gain' : 'loss';
+        const weeklyRateKg = diff / goalWeeksVal; // signed
+        const weeklyPctBW = Math.abs(weeklyRateKg) / weight * 100;
+        dailyAdjustment = weeklyRateKg * 1100; // 7700 kcal/kg ÷ 7 days
+
+        const usingPE = state.peMode === 'yes' && compounds.length > 0;
+        const boost = usingPE
+          ? Math.min(0.6, compounds.reduce((sum, c) => sum + COMPOUNDS[c].boost, 0))
+          : 0;
+        const waterPct = usingPE
+          ? Math.min(5, compounds.reduce((sum, c) => sum + COMPOUNDS[c].water, 0))
+          : 0;
+
+        const label = paceLabel(direction, weeklyPctBW, boost);
+        const extreme = weeklyPctBW > (direction === 'loss' ? 1.0 : 0.5);
+        paceNote.classList.toggle('warn', extreme);
+        paceNote.textContent = `${label} — ${weeklyPctBW.toFixed(2)}% of body weight/week`
+          + (extreme ? ' (faster than generally recommended — consider a longer timeframe)' : '');
+
+        // Body composition projection
+        if(!isNaN(bodyfat) && bodyfat > 0){
+          const startFat = weight * bodyfat / 100;
+          const startLean = weight - startFat;
+          const fFrac = fatFraction(direction, weeklyPctBW, boost);
+          const fatChange = diff * fFrac;
+          const endWeight = goalWeightVal;
+          const endFat = Math.max(0, startFat + fatChange);
+          const endLean = endWeight - endFat;
+          const endBF = (endFat / endWeight) * 100;
+          const waterKg = usingPE ? weight * waterPct / 100 : 0;
+          const endMuscle = endLean - waterKg;
+
+          $('startWeightVal').textContent = weight.toFixed(1) + ' kg';
+          $('startBFVal').textContent = bodyfat.toFixed(1) + '%';
+          $('startFatVal').textContent = startFat.toFixed(1) + ' kg';
+          $('startLeanVal').textContent = startLean.toFixed(1) + ' kg';
+
+          $('endWeightVal').textContent = endWeight.toFixed(1) + ' kg';
+          $('endBFVal').textContent = endBF.toFixed(1) + '%';
+          $('endFatVal').textContent = endFat.toFixed(1) + ' kg';
+          $('endLeanVal').textContent = endLean.toFixed(1) + ' kg';
+
+          $('endMuscleRow').style.display = usingPE ? 'flex' : 'none';
+          $('endWaterRow').style.display = usingPE ? 'flex' : 'none';
+          if(usingPE){
+            $('endMuscleVal').textContent = endMuscle.toFixed(1) + ' kg';
+            $('endWaterVal').textContent = waterKg.toFixed(1) + ' kg';
+          }
+        } else {
+          resetProjection();
+        }
+      }
+    } else if(state.goalMode === 'change'){
+      paceNote.classList.remove('warn');
+      paceNote.textContent = 'Enter a goal weight and timeframe to see your plan.';
+      resetProjection();
+    }
+
+    const target = Math.max(1000, tdee + dailyAdjustment);
 
     $('bmrVal').textContent = Math.round(bmr).toLocaleString() + ' kcal';
     $('tdeeVal').textContent = Math.round(tdee).toLocaleString() + ' kcal';
-    $('adjVal').textContent = (goal > 0 ? '+' : '') + Math.round(goal).toLocaleString() + ' kcal';
+    $('adjVal').textContent = (dailyAdjustment > 0 ? '+' : dailyAdjustment < 0 ? '' : '') + Math.round(dailyAdjustment).toLocaleString() + ' kcal';
     $('targetCals').textContent = Math.round(target).toLocaleString();
-
-    // Time-to-goal-weight estimate (~7700 kcal per kg of body weight)
-    const timelineRow = $('timelineRow');
-    const timelineNote = $('timelineNote');
-    const goalWeightVal = parseFloat($('goalWeight').value);
-    timelineRow.style.display = 'none';
-    timelineNote.style.display = 'none';
-
-    if(!isNaN(goalWeightVal) && goalWeightVal > 0){
-      const diff = goalWeightVal - weight;
-      if(goal === 0){
-        timelineNote.style.display = 'block';
-        timelineNote.classList.add('warn');
-        timelineNote.textContent = 'Pick a mild gain/gain or mild loss/loss goal above to see a timeline.';
-      } else if(Math.abs(diff) < 0.1){
-        timelineNote.style.display = 'block';
-        timelineNote.classList.remove('warn');
-        timelineNote.textContent = 'Goal weight matches your current weight.';
-      } else if((goal > 0 && diff < 0) || (goal < 0 && diff > 0)){
-        timelineNote.style.display = 'block';
-        timelineNote.classList.add('warn');
-        timelineNote.textContent = goal > 0
-          ? 'Your goal weight is below your current weight — switch to a loss goal to see a timeline.'
-          : 'Your goal weight is above your current weight — switch to a gain goal to see a timeline.';
-      } else {
-        const weeklyRateKg = Math.abs(goal) * 7 / 7700;
-        const weeks = Math.abs(diff) / weeklyRateKg;
-        timelineRow.style.display = 'flex';
-        const roundedWeeks = Math.round(weeks);
-        const months = weeks / 4.345;
-        $('timelineVal').textContent = roundedWeeks + (roundedWeeks === 1 ? ' week' : ' weeks')
-          + ` (~${months.toFixed(1)} mo)`;
-      }
-    }
 
     const circumference = 590.6;
     const pct = Math.min(1, Math.max(0, (target - 1200) / (4000 - 1200)));
@@ -506,6 +686,13 @@
     $('proteinG').textContent = Math.round(proteinCals / 4);
     $('carbG').textContent = Math.round(carbCals / 4);
     $('fatG').textContent = Math.round(fatCals / 9);
+  }
+
+  function resetProjection(){
+    ['startWeightVal','startBFVal','startFatVal','startLeanVal','endWeightVal','endBFVal','endFatVal','endLeanVal','endMuscleVal','endWaterVal']
+      .forEach(id => $(id).textContent = '—');
+    $('endMuscleRow').style.display = 'none';
+    $('endWaterRow').style.display = 'none';
   }
 
   calculate();
