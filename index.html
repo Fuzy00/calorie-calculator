@@ -315,7 +315,8 @@
     <h1>Calorie Calculator</h1>
   </header>
 
-  <div class="grid">
+<div class="grid">
+    <!-- 1. YOUR DETAILS CARD (Left Column) -->
     <div class="card">
       <h2>Your details</h2>
 
@@ -352,6 +353,60 @@
       </div>
     </div>
 
+    <!-- 2. YOUR ESTIMATE CARD (Moved here to fill the Right Column) -->
+    <div class="card output">
+      <h2 style="align-self:flex-start;">Your estimate</h2>
+      <div class="dial">
+        <svg width="220" height="220" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="94" fill="none" stroke="var(--track)" stroke-width="14"/>
+          <circle id="dialRing" cx="110" cy="110" r="94" fill="none" stroke="var(--amber)" stroke-width="14"
+                  stroke-linecap="round" stroke-dasharray="590.6" stroke-dashoffset="590.6"/>
+        </svg>
+        <div class="dial-center">
+          <div class="dial-num" id="targetCals">—</div>
+          <div class="dial-unit">kcal / day target</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="bline"><span class="label">BMR (resting burn)</span><span class="val" id="bmrVal">—</span></div>
+        <div class="bline"><span class="label">TDEE (with activity)</span><span class="val" id="tdeeVal">—</span></div>
+        <div class="bline"><span class="label">Daily adjustment</span><span class="val" id="adjVal">—</span></div>
+      </div>
+
+      <div class="manual-panel visible" id="manualPanel">
+        <div class="macro-slider">
+          <div class="ms-top">
+            <span class="ms-name"><span class="dot protein"></span>Protein</span>
+            <span class="ms-pct" id="proteinPctLabel">25%</span>
+          </div>
+          <input type="range" id="proteinSlider" min="5" max="60" value="25">
+        </div>
+        <div class="macro-slider">
+          <div class="ms-top">
+            <span class="ms-name"><span class="dot fat"></span>Fat</span>
+            <span class="ms-pct" id="fatPctLabel">15%</span>
+          </div>
+          <input type="range" id="fatSlider" min="5" max="60" value="15">
+        </div>
+        <div class="macro-slider">
+          <div class="ms-top">
+            <span class="ms-name"><span class="dot carb"></span>Carbs</span>
+            <span class="ms-pct" id="carbPctLabel">60%</span>
+          </div>
+          <input type="range" id="carbSlider" min="5" max="70" value="60">
+        </div>
+        <div class="sum-note" id="sumNote">Total: 100%</div>
+      </div>
+
+      <div class="macros">
+        <div class="macro"><div class="m-label">Protein</div><div class="m-val" id="proteinG">—</div><div class="m-g">g / day</div></div>
+        <div class="macro"><div class="m-label">Fat</div><div class="m-val" id="fatG">—</div><div class="m-g">g / day</div></div>
+        <div class="macro"><div class="m-label">Carbs</div><div class="m-val" id="carbG">—</div><div class="m-g">g / day</div></div>
+      </div>
+    </div>
+
+    <!-- 3. GOAL & TIMELINE CARD (Spans full width below the top two cards) -->
     <div class="card" style="grid-column: 1 / -1;">
       <h2>Goal &amp; timeline</h2>
 
@@ -465,58 +520,6 @@
             <div class="bline" id="endWaterRow" style="display:none;"><span class="label">— Water retention</span><span class="val" id="endWaterVal">—</span></div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div class="card output">
-      <h2 style="align-self:flex-start;">Your estimate</h2>
-      <div class="dial">
-        <svg width="220" height="220" viewBox="0 0 220 220">
-          <circle cx="110" cy="110" r="94" fill="none" stroke="var(--track)" stroke-width="14"/>
-          <circle id="dialRing" cx="110" cy="110" r="94" fill="none" stroke="var(--amber)" stroke-width="14"
-                  stroke-linecap="round" stroke-dasharray="590.6" stroke-dashoffset="590.6"/>
-        </svg>
-        <div class="dial-center">
-          <div class="dial-num" id="targetCals">—</div>
-          <div class="dial-unit">kcal / day target</div>
-        </div>
-      </div>
-
-      <div class="breakdown">
-        <div class="bline"><span class="label">BMR (resting burn)</span><span class="val" id="bmrVal">—</span></div>
-        <div class="bline"><span class="label">TDEE (with activity)</span><span class="val" id="tdeeVal">—</span></div>
-        <div class="bline"><span class="label">Daily adjustment</span><span class="val" id="adjVal">—</span></div>
-      </div>
-
-      <div class="manual-panel visible" id="manualPanel">
-        <div class="macro-slider">
-          <div class="ms-top">
-            <span class="ms-name"><span class="dot protein"></span>Protein</span>
-            <span class="ms-pct" id="proteinPctLabel">25%</span>
-          </div>
-          <input type="range" id="proteinSlider" min="5" max="60" value="25">
-        </div>
-        <div class="macro-slider">
-          <div class="ms-top">
-            <span class="ms-name"><span class="dot fat"></span>Fat</span>
-            <span class="ms-pct" id="fatPctLabel">15%</span>
-          </div>
-          <input type="range" id="fatSlider" min="5" max="60" value="15">
-        </div>
-        <div class="macro-slider">
-          <div class="ms-top">
-            <span class="ms-name"><span class="dot carb"></span>Carbs</span>
-            <span class="ms-pct" id="carbPctLabel">60%</span>
-          </div>
-          <input type="range" id="carbSlider" min="5" max="70" value="60">
-        </div>
-        <div class="sum-note" id="sumNote">Total: 100%</div>
-      </div>
-
-      <div class="macros">
-        <div class="macro"><div class="m-label">Protein</div><div class="m-val" id="proteinG">—</div><div class="m-g">g / day</div></div>
-        <div class="macro"><div class="m-label">Fat</div><div class="m-val" id="fatG">—</div><div class="m-g">g / day</div></div>
-        <div class="macro"><div class="m-label">Carbs</div><div class="m-val" id="carbG">—</div><div class="m-g">g / day</div></div>
       </div>
     </div>
   </div>
