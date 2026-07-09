@@ -151,6 +151,35 @@
   }
   .goal-opt input{ width:auto; margin:0; accent-color:var(--amber); }
   .goal-opt.active{ border-color:var(--amber); background:var(--amber-soft); }
+  .compound-row{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    margin-bottom:8px;
+  }
+  .compound-row .cr-top{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    cursor:pointer;
+  }
+  .compound-row .cr-top input{ width:auto; margin:0; accent-color:var(--amber); flex-shrink:0; }
+  .compound-row .cr-name{ font-size:14px; }
+  .compound-row .cr-meta{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .compound-row .mg-field{
+    display:none;
+    margin-top:10px;
+    padding-left:26px;
+  }
+  .compound-row.checked{ border-color:var(--amber); background:var(--amber-soft); }
+  .compound-row.checked .mg-field{ display:block; }
+  .mg-field input{ max-width:160px; }
 
   /* Output card */
   .output{ display:flex; flex-direction:column; align-items:center; text-align:center; }
@@ -354,11 +383,64 @@
         </div>
 
         <div id="peCompounds" style="display:none; margin-bottom:18px;">
-          <div class="goal-list">
-            <label class="goal-opt"><input type="checkbox" class="compound" value="test"> Test (Testosterone) — no defined max</label>
-            <label class="goal-opt"><input type="checkbox" class="compound" value="deca"> Deca (Nandrolone Decanoate) — max ~24 weeks</label>
-            <label class="goal-opt"><input type="checkbox" class="compound" value="tren"> Tren (Trenbolone) — max ~6 weeks</label>
-            <label class="goal-opt"><input type="checkbox" class="compound" value="npp"> NPP (Nandrolone Phenylpropionate) — max ~10 weeks</label>
+          <div class="compound-row" id="row-test">
+            <label class="cr-top">
+              <input type="checkbox" class="compound" value="test">
+              <span>
+                <span class="cr-name">Test (Testosterone)</span>
+                <span class="cr-meta">AAS ratio 100:100 · no defined max</span>
+              </span>
+            </label>
+            <div class="mg-field">
+              <label>mg / week</label>
+              <input type="number" class="mg-input" id="mg-test" min="0" step="25">
+            </div>
+          </div>
+
+          <div class="compound-row" id="row-deca">
+            <label class="cr-top">
+              <input type="checkbox" class="compound" value="deca">
+              <span>
+                <span class="cr-name">Deca (Nandrolone Decanoate)</span>
+                <span class="cr-meta">AAS ratio 125:37 · max ~24 weeks</span>
+              </span>
+            </label>
+            <div class="mg-field">
+              <label>mg / week</label>
+              <input type="number" class="mg-input" id="mg-deca" min="0" step="25">
+            </div>
+          </div>
+
+          <div class="compound-row" id="row-tren">
+            <label class="cr-top">
+              <input type="checkbox" class="compound" value="tren">
+              <span>
+                <span class="cr-name">Tren (Trenbolone)</span>
+                <span class="cr-meta">AAS ratio 500:500 · max ~6 weeks</span>
+              </span>
+            </label>
+            <div class="mg-field">
+              <label>mg / week</label>
+              <input type="number" class="mg-input" id="mg-tren" min="0" step="25">
+            </div>
+          </div>
+
+          <div class="compound-row" id="row-npp">
+            <label class="cr-top">
+              <input type="checkbox" class="compound" value="npp">
+              <span>
+                <span class="cr-name">NPP (Nandrolone Phenylpropionate)</span>
+                <span class="cr-meta">AAS ratio 125:37 · max ~10 weeks</span>
+              </span>
+            </label>
+            <div class="mg-field">
+              <label>mg / week</label>
+              <input type="number" class="mg-input" id="mg-npp" min="0" step="25">
+            </div>
+          </div>
+
+          <div class="sum-note" style="text-align:left; margin-top:4px; margin-bottom:4px;">
+            Weekly mg scales the modeled effect relative to a rough internal reference — this isn't a recommended dose, and higher isn't simply "better": it also raises side-effect risk. Leave mg blank to use an unscaled baseline estimate.
           </div>
           <div class="sum-note" id="durationNote" style="display:none; text-align:left; margin-top:12px;"></div>
         </div>
@@ -447,15 +529,29 @@
   const state = { goalMode: 'maintain', peMode: 'no' };
 
   // Rough, commonly-cited fitness-community characteristics per compound.
-  // water: relative water-retention contribution (% of bodyweight)
-  // boost: relative partitioning boost toward muscle/away from fat
+  // water: relative water-retention contribution (% of bodyweight) at the internal reference dose
+  // boost: relative partitioning boost toward muscle/away from fat at the internal reference dose
   // maxWeeks: typical cycle-length ceiling before diminishing returns / rising risk
+  // refMg: internal-only normalization anchor used to scale the effect with the dose you enter —
+  //   NOT a recommendation, just a midpoint for the model's math
   const COMPOUNDS = {
-    test: { label: 'Test',  water: 1.5, boost: 0.15, maxWeeks: null },
-    deca: { label: 'Deca',  water: 2.5, boost: 0.20, maxWeeks: 24 },
-    tren: { label: 'Tren',  water: 0.0, boost: 0.30, maxWeeks: 6 },
-    npp:  { label: 'NPP',   water: 2.0, boost: 0.20, maxWeeks: 10 }
+    test: { label: 'Test',  water: 1.5, boost: 0.15, maxWeeks: null, refMg: 500 },
+    deca: { label: 'Deca',  water: 2.5, boost: 0.20, maxWeeks: 24,   refMg: 400 },
+    tren: { label: 'Tren',  water: 0.0, boost: 0.30, maxWeeks: 6,    refMg: 300 },
+    npp:  { label: 'NPP',   water: 2.0, boost: 0.20, maxWeeks: 10,   refMg: 300 }
   };
+
+  document.querySelectorAll('.compound').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      $('row-' + cb.value).classList.toggle('checked', cb.checked);
+      calculate();
+    });
+  });
+
+  document.querySelectorAll('.mg-input').forEach(inp=>{
+    inp.addEventListener('input', calculate);
+    inp.addEventListener('change', calculate);
+  });
 
   document.querySelectorAll('#goalModeToggle button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -475,10 +571,6 @@
       $('peCompounds').style.display = state.peMode === 'yes' ? 'block' : 'none';
       calculate();
     });
-  });
-
-  document.querySelectorAll('.compound').forEach(cb=>{
-    cb.addEventListener('change', calculate);
   });
 
   ['age','weight','height','activity','bodyfat','goalWeight','goalWeeks'].forEach(id=>{
@@ -600,11 +692,23 @@
         dailyAdjustment = weeklyRateKg * 1100; // 7700 kcal/kg ÷ 7 days
 
         const usingPE = state.peMode === 'yes' && compounds.length > 0;
+
+        // Scale each compound's effect by the mg/week entered, relative to an
+        // internal reference point (not a recommendation) — more mg pushes the
+        // modeled effect up, less mg pulls it down, clamped so the model doesn't
+        // extrapolate wildly at very low or very high inputs.
+        function doseScale(key){
+          const mgInput = $('mg-' + key);
+          const mg = mgInput ? parseFloat(mgInput.value) : NaN;
+          if(isNaN(mg) || mg <= 0) return 1; // no dose entered — use unscaled baseline
+          return Math.min(1.6, Math.max(0.3, mg / COMPOUNDS[key].refMg));
+        }
+
         const boost = usingPE
-          ? Math.min(0.6, compounds.reduce((sum, c) => sum + COMPOUNDS[c].boost, 0))
+          ? Math.min(0.6, compounds.reduce((sum, c) => sum + COMPOUNDS[c].boost * doseScale(c), 0))
           : 0;
         const waterPct = usingPE
-          ? Math.min(5, compounds.reduce((sum, c) => sum + COMPOUNDS[c].water, 0))
+          ? Math.min(5, compounds.reduce((sum, c) => sum + COMPOUNDS[c].water * doseScale(c), 0))
           : 0;
 
         const label = paceLabel(direction, weeklyPctBW, boost);
@@ -617,14 +721,38 @@
         if(!isNaN(bodyfat) && bodyfat > 0){
           const startFat = weight * bodyfat / 100;
           const startLean = weight - startFat;
-          const fFrac = fatFraction(direction, weeklyPctBW, boost);
-          const fatChange = diff * fFrac;
           const endWeight = goalWeightVal;
-          const endFat = Math.max(0, startFat + fatChange);
+          const waterKg = usingPE ? weight * waterPct / 100 : 0;
+
+          let endFat, muscleChangeKg;
+
+          if(direction === 'gain'){
+            // Real muscle tissue accretion is rate-limited by biology, not just
+            // by how big a surplus you run — extra calories beyond that rate
+            // mostly become fat. ~0.25 kg/week is a commonly-cited natural
+            // ceiling for an intermediate lifter; enhanced compounds raise that
+            // ceiling (scaled by dose), but it's still capped, not unlimited.
+            const NATURAL_MUSCLE_RATE = 0.25; // kg/week
+            const muscleRatePerWeek = usingPE
+              ? Math.min(0.75, NATURAL_MUSCLE_RATE * (1 + boost * 2))
+              : NATURAL_MUSCLE_RATE;
+            const maxMuscleGain = muscleRatePerWeek * goalWeeksVal;
+            const availableForTissue = Math.max(0, diff - waterKg);
+            muscleChangeKg = Math.min(maxMuscleGain, availableForTissue);
+            const fatGainKg = Math.max(0, diff - muscleChangeKg - waterKg);
+            endFat = startFat + fatGainKg;
+          } else {
+            // Cutting: use the fat-vs-lean partitioning split (how much of the
+            // loss is fat vs muscle), which naturally stays in a realistic range.
+            const fFrac = fatFraction(direction, weeklyPctBW, boost);
+            const fatChange = diff * fFrac;
+            endFat = Math.max(0, startFat + fatChange);
+            const endLeanTotal = endWeight - endFat;
+            muscleChangeKg = (endLeanTotal - waterKg) - startLean;
+          }
+
           const endLean = endWeight - endFat;
           const endBF = (endFat / endWeight) * 100;
-          const waterKg = usingPE ? weight * waterPct / 100 : 0;
-          const endMuscle = endLean - waterKg;
 
           $('startWeightVal').textContent = weight.toFixed(1) + ' kg';
           $('startBFVal').textContent = bodyfat.toFixed(1) + '%';
@@ -639,7 +767,10 @@
           $('endMuscleRow').style.display = usingPE ? 'flex' : 'none';
           $('endWaterRow').style.display = usingPE ? 'flex' : 'none';
           if(usingPE){
-            $('endMuscleVal').textContent = endMuscle.toFixed(1) + ' kg';
+            const sign = muscleChangeKg > 0 ? '+' : muscleChangeKg < 0 ? '' : '';
+            $('endMuscleVal').textContent = sign + muscleChangeKg.toFixed(1) + ' kg';
+            document.querySelector('#endMuscleRow .label').textContent =
+              muscleChangeKg >= 0 ? '— Muscle gained' : '— Muscle lost';
             $('endWaterVal').textContent = waterKg.toFixed(1) + ' kg';
           }
         } else {
